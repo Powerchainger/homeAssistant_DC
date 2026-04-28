@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import time
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_state_change_event
@@ -67,7 +66,8 @@ class PowerChaingerCoordinator:
             outbound: list[Measurement] = []
             if current_is_active and not previous_is_active:
                 # Guarded pre-activation marker: emit one synthetic 0 only on idle->active.
-                outbound.append(measurement.with_wattage(0.0, int(time.time() * 1_000_000_000)))
+                synthetic_zero_timestamp = max(0, measurement.timestamp - 1)
+                outbound.append(measurement.with_wattage(0.0, synthetic_zero_timestamp))
             outbound.append(measurement)
 
             self._entity_is_active[entity_id] = current_is_active
