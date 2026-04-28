@@ -1,0 +1,18 @@
+{
+  "domain": "powerchainger",
+  "name": "Powerchainger Data Forwarder",
+  "version": "0.1.1",
+  "config_flow": true,
+  "icon": "mdi:flash",
+  "documentation": "https://github.com/powerchainger",
+  "codeowners": [
+    "@powerchainger"
+  ],
+  "requirements": [
+    "python-socketio>=5.11.0"
+  ],
+  "iot_class": "local_polling",
+  "loggers": [
+    "custom_components.powerchainger"
+  ]
+}

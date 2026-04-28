@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.DS_Store
+
+# Local runtime artifacts from local HA runs.
+config/
+scripts/

@@ -1,0 +1,29 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Powerchainger instellen",
+        "description": "Bedankt dat je ons helpt met dataverzameling. Selecteer hieronder de apparaten die je met ons wilt delen, en zet \"data delen\" aan.\n\nToegewezen gebruikersnaam: {username}\n\nWat we verzamelen: de naam van de sensor en het elektriciteitsverbruik. Er wordt geen andere informatie verstuurd (niet je naam, locatie of andere gevoelige gegevens). Let op: we kunnen je data alleen gebruiken als je minimaal 6 weken data verzamelt.\n\nNeem contact met ons op via: marios@powerchainger.nl",
+        "data": {
+          "send_data": "Data delen",
+          "selected_entities": "Stroom-entiteiten"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Er is maar één Powerchainger-instantie toegestaan."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Instellingen",
+        "description": "Bedankt dat je ons helpt met dataverzameling. Selecteer hieronder de apparaten die je met ons wilt delen, en zet \"data delen\" aan.\n\nToegewezen gebruikersnaam: {username}\n\nWat we verzamelen: de naam van de sensor en het elektriciteitsverbruik. Er wordt geen andere informatie verstuurd (niet je naam, locatie of andere gevoelige gegevens). Let op: we kunnen je data alleen gebruiken als je minimaal 6 weken data verzamelt.\n\nNeem contact met ons op via: marios@powerchainger.nl",
+        "data": {
+          "send_data": "Data delen",
+          "selected_entities": "Stroom-entiteiten"
+        }
+      }
+    }
+  }
+}
