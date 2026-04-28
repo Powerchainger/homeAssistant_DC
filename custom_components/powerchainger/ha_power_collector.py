@@ -20,6 +20,17 @@ class Measurement:
     entity_name: str
     device_id: str | None
 
+    def with_wattage(self, wattage: float, timestamp: int | None = None) -> "Measurement":
+        return Measurement(
+            user_id=self.user_id,
+            timestamp=self.timestamp if timestamp is None else timestamp,
+            serial=self.serial,
+            wattage=wattage,
+            entity_id=self.entity_id,
+            entity_name=self.entity_name,
+            device_id=self.device_id,
+        )
+
     def to_payload(self) -> dict[str, Any]:
         return {
             "UserId": self.user_id,

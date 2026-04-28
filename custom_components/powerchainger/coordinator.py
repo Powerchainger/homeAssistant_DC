@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import logging
+import time
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_state_change_event
 
-from .ha_power_collector import HAPowerCollector
+from .ha_power_collector import HAPowerCollector, Measurement
 from .socketio_client import PowerChaingerSocketClient
 
 _LOGGER = logging.getLogger(__name__)
@@ -26,6 +27,7 @@ class PowerChaingerCoordinator:
         self._collector = collector
         self._socket_client = socket_client
         self._unsub_state_events = None
+        self._entity_is_active: dict[str, bool] = {}
 
     async def async_start(self) -> None:
         entity_ids = self._collector.selected_entities()
@@ -59,7 +61,17 @@ class PowerChaingerCoordinator:
             measurement = await self._collector.measurement_from_state(entity_id, new_state)
             if measurement is None:
                 return
-            await self._socket_client.send_many([measurement])
+            current_is_active = measurement.wattage > 0
+            previous_is_active = self._entity_is_active.get(entity_id, False)
+
+            outbound: list[Measurement] = []
+            if current_is_active and not previous_is_active:
+                # Guarded pre-activation marker: emit one synthetic 0 only on idle->active.
+                outbound.append(measurement.with_wattage(0.0, int(time.time() * 1_000_000_000)))
+            outbound.append(measurement)
+
+            self._entity_is_active[entity_id] = current_is_active
+            await self._socket_client.send_many(outbound)
         except Exception as err:  # pragma: no cover - safety net in event callback
             _LOGGER.exception("Powerchainger event processing failed: %s", err)
 
