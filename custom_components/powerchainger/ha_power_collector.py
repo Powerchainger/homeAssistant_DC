@@ -44,32 +44,36 @@ class HAPowerCollector:
         self._hass = hass
         self._user_id = user_id
         self._entity_ids = selected_entities
+        self._entity_ids_set = set(selected_entities)
+        self._last_forwarded_updated: dict[str, str] = {}
 
-    async def collect(self) -> list[Measurement]:
-        timestamp = int(time.time() * 1_000_000_000)
+    def selected_entities(self) -> list[str]:
+        return self._entity_ids
+
+    async def measurement_from_state(self, entity_id: str, state) -> Measurement | None:
+        if entity_id not in self._entity_ids_set or state is None:
+            return None
+
+        try:
+            wattage = float(state.state)
+        except (TypeError, ValueError):
+            return None
+
+        source_updated = str(state.last_updated)
+        if self._last_forwarded_updated.get(entity_id) == source_updated:
+            return None
+
+        self._last_forwarded_updated[entity_id] = source_updated
         entity_registry = er.async_get(self._hass)
-        out: list[Measurement] = []
-        for entity_id in self._entity_ids:
-            state = self._hass.states.get(entity_id)
-            if state is None:
-                continue
-            try:
-                wattage = float(state.state)
-            except (TypeError, ValueError):
-                continue
-
-            entry = entity_registry.async_get(entity_id)
-            entity_name = state.name or entity_id
-            device_id = entry.device_id if entry else None
-            out.append(
-                Measurement(
-                    user_id=self._user_id,
-                    timestamp=timestamp,
-                    serial=str(entity_name),
-                    wattage=wattage,
-                    entity_id=entity_id,
-                    entity_name=str(entity_name),
-                    device_id=device_id,
-                )
-            )
-        return out
+        entry = entity_registry.async_get(entity_id)
+        entity_name = state.name or entity_id
+        device_id = entry.device_id if entry else None
+        return Measurement(
+            user_id=self._user_id,
+            timestamp=int(time.time() * 1_000_000_000),
+            serial=str(entity_name),
+            wattage=wattage,
+            entity_id=entity_id,
+            entity_name=str(entity_name),
+            device_id=device_id,
+        )

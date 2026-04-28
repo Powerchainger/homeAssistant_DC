@@ -1,12 +1,11 @@
-"""Coordinator that polls and forwards HomeWizard measurements."""
+"""Coordinator that forwards on Home Assistant state-change events."""
 
 from __future__ import annotations
 
-from datetime import timedelta
 import logging
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.event import async_track_state_change_event
 
 from .ha_power_collector import HAPowerCollector
 from .socketio_client import PowerChaingerSocketClient
@@ -15,40 +14,57 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class PowerChaingerCoordinator:
-    """Background coordinator for 1s measurement forwarding."""
+    """Event-driven coordinator for selected entities."""
 
     def __init__(
         self,
         hass: HomeAssistant,
         collector: HAPowerCollector,
         socket_client: PowerChaingerSocketClient,
-        scan_interval_seconds: int,
     ) -> None:
         self._hass = hass
         self._collector = collector
         self._socket_client = socket_client
-        self._scan_interval = timedelta(seconds=scan_interval_seconds)
-        self._unsub_interval = None
+        self._unsub_state_events = None
 
     async def async_start(self) -> None:
-        self._unsub_interval = async_track_time_interval(
-            self._hass, self._async_tick, self._scan_interval
+        entity_ids = self._collector.selected_entities()
+        self._unsub_state_events = async_track_state_change_event(
+            self._hass,
+            entity_ids,
+            self._handle_state_change,
         )
-        _LOGGER.info("Powerchainger coordinator started with interval=%ss", self._scan_interval.total_seconds())
-        # Run immediately once so first datapoint is not delayed by one full interval.
-        await self._async_tick(None)
+        _LOGGER.info("Powerchainger event listener started for %s selected entities", len(entity_ids))
 
-    async def _async_tick(self, _now) -> None:
+    @staticmethod
+    def _extract_entity_id(event) -> str | None:
+        return event.data.get("entity_id")
+
+    @staticmethod
+    def _extract_new_state(event):
+        return event.data.get("new_state")
+
+    def _handle_state_change(self, event) -> None:
+        # state_changed callbacks may arrive off the event loop thread;
+        # add_job is the HA thread-safe way to schedule coroutine work.
+        self._hass.add_job(self._async_process_state_change, event)
+
+    async def _async_process_state_change(self, event) -> None:
         try:
-            measurements = await self._collector.collect()
-            await self._socket_client.send_many(measurements)
-            if measurements:
-                _LOGGER.debug("Forwarded %s measurement(s)", len(measurements))
-        except Exception as err:  # pragma: no cover - safety net in scheduler callback
-            _LOGGER.exception("Powerchainger tick failed: %s", err)
+            entity_id = self._extract_entity_id(event)
+            new_state = self._extract_new_state(event)
+
+            if entity_id is None:
+                return
+            measurement = await self._collector.measurement_from_state(entity_id, new_state)
+            if measurement is None:
+                return
+            await self._socket_client.send_many([measurement])
+        except Exception as err:  # pragma: no cover - safety net in event callback
+            _LOGGER.exception("Powerchainger event processing failed: %s", err)
 
     async def async_stop(self) -> None:
-        if self._unsub_interval is not None:
-            self._unsub_interval()
-            self._unsub_interval = None
+        if self._unsub_state_events is not None:
+            self._unsub_state_events()
+            self._unsub_state_events = None
         await self._socket_client.shutdown()

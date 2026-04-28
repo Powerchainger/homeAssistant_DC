@@ -13,7 +13,6 @@ from .const import (
     CONF_SELECTED_ENTITIES,
     CONF_USER,
     CONF_WEBSOCKET_URL,
-    DEFAULT_SCAN_INTERVAL,
     DEFAULT_WEBSOCKET_URL,
     DOMAIN,
 )
@@ -40,7 +39,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         dry_run = data.get(CONF_DRY_RUN, True)
     else:
         dry_run = not send_data
-    scan_interval = DEFAULT_SCAN_INTERVAL
     selected_entities = data.get(CONF_SELECTED_ENTITIES, [])
 
     if not selected_entities:
@@ -64,7 +62,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass=hass,
         collector=collector,
         socket_client=socket_client,
-        scan_interval_seconds=scan_interval,
     )
 
     await coordinator.async_start()
