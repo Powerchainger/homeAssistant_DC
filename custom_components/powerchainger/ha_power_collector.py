@@ -48,12 +48,14 @@ class HAPowerCollector:
         entry = entity_registry.async_get(entity_id)
         entity_name = state.name or entity_id
         device_id = entry.device_id if entry else None
+        stable_id = device_id or entity_id
+        serial = f"{stable_id} - {entity_name}"
         sample_unix_second = int(state.last_updated.timestamp())
         return PowerSample(
             user_id=self._user_id,
             entity_id=entity_id,
             entity_name=str(entity_name),
-            serial=str(entity_name),
+            serial=str(serial),
             device_id=device_id,
             wattage=wattage,
             sample_unix_second=sample_unix_second,

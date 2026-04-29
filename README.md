@@ -50,3 +50,5 @@ You can later change all settings from the integration `Configure` / `Options` p
 - Turn `Send data` on only when you are ready to send data to your backend.
 - Payload format is compatible with the existing datacollection Socket.IO event `json`:
   - `UserId`, `Timestamp`, `Serial`, `Wattage`
+  - For HomeWizard direct polling, `Serial` is formatted as `<stable-id> - <current Home Assistant entity display name>` (falls back to `<stable-id>` if name is unavailable).
+  - For other selected entities, `Serial` is formatted as `<device-id-or-entity-id> - <current Home Assistant entity display name>`.

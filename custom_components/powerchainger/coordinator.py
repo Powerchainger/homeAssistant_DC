@@ -237,14 +237,25 @@ class PowerChaingerCoordinator:
             wattage = self._extract_homewizard_wattage(combined, binding.sensor_key)
             if wattage is None:
                 continue
+            current_state = self._hass.states.get(binding.entity_id)
+            current_entity_name = (
+                str(current_state.name)
+                if current_state is not None and current_state.name
+                else binding.entity_name
+            )
+            serial_name = current_entity_name.strip() if current_entity_name else ""
+            if serial_name:
+                serial_value = f"{binding.serial} - {serial_name}"
+            else:
+                serial_value = binding.serial
             out.append(
                 Measurement(
                     user_id=self._collector.user_id,
                     timestamp=now_ts,
-                    serial=binding.serial,
+                    serial=serial_value,
                     wattage=wattage,
                     entity_id=binding.entity_id,
-                    entity_name=binding.entity_name,
+                    entity_name=current_entity_name,
                     device_id=binding.device_id,
                 )
             )
