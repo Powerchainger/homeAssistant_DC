@@ -1,4 +1,9 @@
-"""Async Socket.IO forwarding with reconnect-safe buffering."""
+"""Async Socket.IO forwarding with reconnect-safe buffering.
+
+When disconnected, measurements are held in ``_buffer`` until the next successful
+send. Sampling semantics (HomeWizard direct 1 Hz polling vs event-driven forwarding)
+live in ``coordinator.PowerChaingerCoordinator``, not here.
+"""
 
 from __future__ import annotations
 
@@ -8,7 +13,7 @@ import logging
 import socketio
 
 from .const import DEFAULT_BUFFER_MAX_SIZE
-from .ha_power_collector import Measurement
+from .models import Measurement
 
 _LOGGER = logging.getLogger(__name__)
 

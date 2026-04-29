@@ -2,45 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-import time
-from typing import Any
-
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
-
-@dataclass(slots=True)
-class Measurement:
-    user_id: str
-    timestamp: int
-    serial: str
-    wattage: float
-    entity_id: str
-    entity_name: str
-    device_id: str | None
-
-    def with_wattage(self, wattage: float, timestamp: int | None = None) -> "Measurement":
-        return Measurement(
-            user_id=self.user_id,
-            timestamp=self.timestamp if timestamp is None else timestamp,
-            serial=self.serial,
-            wattage=wattage,
-            entity_id=self.entity_id,
-            entity_name=self.entity_name,
-            device_id=self.device_id,
-        )
-
-    def to_payload(self) -> dict[str, Any]:
-        return {
-            "UserId": self.user_id,
-            "Timestamp": self.timestamp,
-            "Serial": self.serial,
-            "Wattage": self.wattage,
-            "EntityId": self.entity_id,
-            "EntityName": self.entity_name,
-            "DeviceId": self.device_id,
-        }
+from .models import PowerSample
 
 
 class HAPowerCollector:
@@ -58,10 +23,14 @@ class HAPowerCollector:
         self._entity_ids_set = set(selected_entities)
         self._last_forwarded_updated: dict[str, str] = {}
 
+    @property
+    def user_id(self) -> str:
+        return self._user_id
+
     def selected_entities(self) -> list[str]:
         return self._entity_ids
 
-    async def measurement_from_state(self, entity_id: str, state) -> Measurement | None:
+    async def sample_from_state(self, entity_id: str, state) -> PowerSample | None:
         if entity_id not in self._entity_ids_set or state is None:
             return None
 
@@ -79,12 +48,13 @@ class HAPowerCollector:
         entry = entity_registry.async_get(entity_id)
         entity_name = state.name or entity_id
         device_id = entry.device_id if entry else None
-        return Measurement(
+        sample_unix_second = int(state.last_updated.timestamp())
+        return PowerSample(
             user_id=self._user_id,
-            timestamp=int(time.time() * 1_000_000_000),
-            serial=str(entity_name),
-            wattage=wattage,
             entity_id=entity_id,
             entity_name=str(entity_name),
+            serial=str(entity_name),
             device_id=device_id,
+            wattage=wattage,
+            sample_unix_second=sample_unix_second,
         )
